@@ -1,0 +1,14 @@
+Metadata-Version: 2.1
+Name: beamhardening
+Version: 0.0.1
+Summary: Package to correct BM beam hardening
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE.txt
+
+# beamhardening
+
+This is a package to correct for beam hardening in 
+synchrotron WB imaging from bending magenet sources.
+
+Typical usage:

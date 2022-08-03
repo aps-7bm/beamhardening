@@ -1,0 +1,10 @@
+LICENSE.txt
+README.md
+pyproject.toml
+src/beamhardening/__init__.py
+src/beamhardening/beamhardening.py
+src/beamhardening/material.py
+src/beamhardening.egg-info/PKG-INFO
+src/beamhardening.egg-info/SOURCES.txt
+src/beamhardening.egg-info/dependency_links.txt
+src/beamhardening.egg-info/top_level.txt
