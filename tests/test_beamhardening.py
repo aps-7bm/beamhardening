@@ -11,6 +11,14 @@ def beamsoftener():
 def simple_spectrum():
     return beamhardening.Spectrum([1e4], [1.0])
 
+@pytest.fixture
+def top_hat_spectrum():
+    energies = np.linspace(9000, 13000, 1001)
+    powers = np.ones_like(energies)
+    powers -= np.abs(energies - 11000.) / 1000.
+    powers[powers < 0] = 0
+    return beamhardening.Spectrum(energies, powers)
+
 def test_set_geometry(beamsoftener):
     beamsoftener.set_geometry(25, 5.1)
     assert(np.allclose(beamsoftener.d_source, 25))
@@ -35,3 +43,9 @@ def test_find_angles(beamsoftener):
     pixels_from_center = np.abs(np.arange(500) - 232)
     ref_angle = pixels_from_center * 5.1 / 25
     assert(np.allclose(ref_angle, beamsoftener.angles))
+
+def test_spectrum_integrated_power(top_hat_spectrum):
+    assert(np.allclose(top_hat_spectrum.integrated_power(), 1000.))
+
+def test_spectrum_mean_energy(top_hat_spectrum):
+    assert(np.allclose(top_hat_spectrum.mean_energy(), 11000.))

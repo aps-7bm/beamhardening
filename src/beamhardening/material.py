@@ -64,7 +64,7 @@ class Material:
                                             'photo'
                                             )
         absorption_array *= thickness * 1e-4
-        output_spectrum.spectral_power *= (1.0 - np.exp(-attenuation_array))
+        output_spectrum.spectral_power *= (1.0 - np.exp(-absorption_array))
         return output_spectrum
     
 

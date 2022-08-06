@@ -1,4 +1,4 @@
-'''Code to correct for beam hardening effects in tomography experiments.
+'''Code to correct for beam hardening effects in imaging experiments.
 The main application of this code is for synchrotron experiments with 
 a bending magnet beam.  This beam is both polychromatic and has a spectrum
 which varies with the vertical angle from the ring plane.  In principle,
@@ -51,7 +51,7 @@ from beamhardening import material
 log = logging.getLogger(__name__)
 
 
-data_path = Path(__file__).parent.parent / 'data'
+data_path = Path(__file__).parent
 
 
 class Spectrum:
@@ -90,7 +90,6 @@ class BeamSoftener():
     threshold_trans = None
     # Variables for when we convert images
     centerline_spline = None
-    angular_spline = None
 
     
     def __init__(self):
@@ -113,11 +112,9 @@ class BeamSoftener():
             if not config_path.exists():
                 raise IOError('Config file does not exist: ' + str(config_path))
         else:
-            config_path = Path.joinpath(Path(__file__).cwd(), 'setup.cfg')
+            config_path = Path.joinpath(Path(__file__).parent, 'setup.cfg')
         with open(config_path, 'r') as config_file:
             for line in config_file.readlines():
-                if line == '':
-                    break
                 if line.startswith('#'):
                     continue
                 elif line.startswith('ref_trans'):
@@ -144,14 +141,14 @@ class BeamSoftener():
                 log.info('  *** *** source file {:s} located'.format(f_path.name))
                 f_angle = float(f_path.name.split('_')[1][:2])
                 spectral_data = np.genfromtxt(f_path, comments='!')
-                spectral_energies = spectral_data[:,0] / 1000.
+                spectral_energies = spectral_data[:,0]
                 spectral_power = spectral_data[:,1]
                 self.spectra_dict[f_angle] = Spectrum(spectral_energies, spectral_power)
-    
 
+    
     def add_filter(self, symbol, density, thickness):
         """Add a filter of a given symbol and thickness."""
-        matl = material.Material(symbol, density, spectra_dict[0].energies)
+        matl = material.Material(symbol, density)
         self.filters[matl] = thickness
     
 
@@ -161,7 +158,7 @@ class BeamSoftener():
         symbol: chemical formula for the sample
         density: density of the sample material in g/cc
         '''
-        self.sample_material = material.Material(symbol, density, spectra_dict[0].energies)
+        self.sample_material = material.Material(symbol, density)
 
 
     def add_scintillator(self, symbol, density, thickness):
@@ -171,8 +168,15 @@ class BeamSoftener():
         density: density of the sample material in g/cc
         thickness: active thickness of the scintillator
         '''
-        self.scintillator_material = material.Material(symbol, density, spectra_dict[0].energies)
+        self.scintillator_material = material.Material(symbol, density)
         self.scintillator_thickness = thickness
+
+
+    def set_geometry(self, d_source, pixel_size):
+        '''Explicitly set the geometry for computing vertical variations in spectrum.
+        '''
+        self.d_source = d_source
+        self.pixel_size = pixel_size
 
 
     def apply_filters(self, input_spectrum):
@@ -201,7 +205,7 @@ class BeamSoftener():
         Return:
         numpy array with angle of each image row
         '''
-        vertical_slice = np.sum(input, axis=1, dtype=np.float64)
+        vertical_slice = np.sum(input_image, axis=1, dtype=np.float64)
         gaussian_filter = scipy.signal.windows.gaussian(200,20)
         filtered_slice = scipy.signal.convolve(vertical_slice, gaussian_filter,
                                                 mode='same')
@@ -290,12 +294,3 @@ class BeamSoftener():
         return
         pathlength = mproc.distribute_jobs(input_trans, self.centerline_spline, args=(), axis=1)
         return pathlength
-
-
-    def correct_vertical_spectrum(self, centerline_image):
-        '''Applies the correction for the vertical position to an 
-        image that has been corrected assuming the centerline spectrum.
-        Returns:
-        image corrected for vertical variations in spectrum
-        '''
-        return centerline_image * self.angular_correction
