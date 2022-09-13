@@ -40,11 +40,11 @@ import logging
 
 import numpy as np
 import scipy.integrate
+import matplotlib.pyplot as plt
 import h5py
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.signal import convolve
 from scipy.signal.windows import gaussian
-
 from beamhardening import material
 
 
@@ -76,11 +76,13 @@ class Spectrum:
         return len(energies)
 
 
-class BeamSoftener():
+class BeamCorrector():
     # Variables we need for computing LUT
     spectra_dict = None # Initialized in __init__
     scintillator_thickness = 0
     scintillator_material = None
+    dark_image = None
+    flat_image = None
     d_source = None
     sample_material = None
     pixel_size = None
@@ -90,13 +92,13 @@ class BeamSoftener():
     threshold_trans = None
     # Variables for when we convert images
     centerline_spline = None
-
     
     def __init__(self):
         """Initializes the beam hardening correction code."""
         log.info('  *** beam hardening')
         self.filters = {}        
         self.filter_densities = {}
+        self.possible_materials = {}
         self.read_config_file()
         self.read_source_data()
         self.angles = None 
@@ -117,6 +119,15 @@ class BeamSoftener():
             for line in config_file.readlines():
                 if line.startswith('#'):
                     continue
+                elif line.startswith('symbol'):
+                    symbol = line.split(',')[0].split('=')[1].strip()
+                    density = float(line.split(',')[1].split('=')[1])
+                    self.possible_materials[symbol] = (symbol, density)
+                elif line.startswith('name'):
+                    name = line.split(',')[0].split('=')[1].strip()
+                    symbol = line.split(',')[1].split('=')[1].strip()
+                    density = float(line.split(',')[2].split('=')[1])
+                    self.possible_materials[name] = (symbol, density)
                 elif line.startswith('ref_trans'):
                     self.ref_trans = float(line.split(':')[1].strip())
                 elif line.startswith('threshold_trans'):
@@ -146,34 +157,55 @@ class BeamSoftener():
                 self.spectra_dict[f_angle] = Spectrum(spectral_energies, spectral_power)
 
     
-    def add_filter(self, symbol, density, thickness):
+    def add_filter(self, symbol, thickness, density = None):
         """Add a filter of a given symbol and thickness."""
-        matl = material.Material(symbol, density)
+        if density is None and symbol in self.possible_materials:
+            density = self.possible_materials[symbol][1]
+            matl = material.Material(self.possible_materials[symbol][0], density)
+        else:
+            matl = material.Material(symbol, density)
         self.filters[matl] = thickness
     
 
-    def add_sample(self, symbol, density):
+    def add_sample(self, symbol, density = None):
         '''Define a sample material to be used in these calculations.
         Inputs:
         symbol: chemical formula for the sample
         density: density of the sample material in g/cc
         '''
-        self.sample_material = material.Material(symbol, density)
+        if density is None and symbol in self.possible_materials:
+            density = self.possible_materials[symbol][1]
+            matl = material.Material(self.possible_materials[symbol][0], density)
+        else:
+            matl = material.Material(symbol, density)
+        self.sample_material = matl
 
 
-    def add_scintillator(self, symbol, density, thickness):
+    def add_scintillator(self, symbol, thickness, density = None):
         '''Define a scintillator material to be used in these calculations.
         Inputs:
         symbol: chemical formula for the sample
-        density: density of the sample material in g/cc
         thickness: active thickness of the scintillator
+        density: density of the sample material in g/cc
         '''
-        self.scintillator_material = material.Material(symbol, density)
+        if density is None and symbol in self.possible_materials:
+            density = self.possible_materials[symbol][1]
+            matl = material.Material(self.possible_materials[symbol][0], density)
+        else:
+            matl = material.Material(symbol, density)
+        self.scintillator_material = matl
         self.scintillator_thickness = thickness
 
 
     def set_geometry(self, d_source, pixel_size):
         '''Explicitly set the geometry for computing vertical variations in spectrum.
+        
+        Parameters
+        ----------
+        d_source : float
+            distance from the source to the scintillator in meters
+        pixel_size: float
+            size of the pixels in object space in microns
         '''
         self.d_source = d_source
         self.pixel_size = pixel_size
@@ -219,19 +251,20 @@ class BeamSoftener():
         Calibrate pathlength vs. transmission at each angle value.
         Compute the correction required to handle angular spectral variations
         '''
-        if scintillator_material is None:
+        if self.scintillator_material is None:
             print('Need to set scintillator material')
             raise AttributeError
-        if sample_material is None:
+        if self.sample_material is None:
             print('Need to define a sample material')
             raise AttributeError
         angles_urad = []
         cal_curve = []
         for angle in sorted(self.spectra_dict.keys()):
+            print(angle)
             angles_urad.append(float(angle))
             spectrum = self.spectra_dict[angle]
             #Filter the beam
-            filtered_spectrum = apply_filters(self.filters, spectrum)
+            filtered_spectrum = self.apply_filters(spectrum)
             #Create an interpolation function based on this
             angle_spline = self._find_calibration_one_angle(filtered_spectrum)
             if angle  == 0:
@@ -242,22 +275,33 @@ class BeamSoftener():
         self.angular_correction = angular_spline(self.angles)[:,None]
 
     
+    def plot_calibration(self):
+        '''Plot the calibration between pathlength and transmission.'''
+        trans = np.logspace(-2, 0.01, 202)
+        plt.loglog(trans, self.centerline_spline(trans))
+        plt.xlabel('Transmission')
+        plt.ylabel('Pathlength, microns')
+        plt.show()    
+        
     def _find_calibration_one_angle(self, input_spectrum):
         '''Makes a scipy interpolation function to be used to correct images.
         
         '''
         # Make an array of sample thicknesses
-        sample_thicknesses = np.sort(np.concatenate((-np.logspace(1,0,21), [0], np.logspace(-1,4.5,441))))
+        sample_thicknesses = np.sort(np.concatenate((-np.logspace(1,-1,21), [0], np.logspace(-1,4.5,56))))
         # For each thickness, compute the absorbed power in the scintillator
         detected_power = np.zeros_like(sample_thicknesses)
+        sample_ext_lengths = np.exp(-self.sample_material.return_ext_lengths_total(1, input_spectrum.energies))
+        scint_ext_lengths = self.scintillator_material.return_ext_lengths_abs(self.scintillator_thickness, input_spectrum.energies)
+        scint_abs_spectrum = 1 - np.exp(-scint_ext_lengths)
         for i in range(sample_thicknesses.size):
-            sample_filtered_power = self.sample_material.compute_transmitted_spectrum(sample_thicknesses[i],
-                                                                                  input_spectrum)
-            detected_power[i] = self.scintillator_material.compute_absorbed_power(self.scintillator_thickness,
-                                                                                   sample_filtered_power)
+            trans = np.exp(-sample_ext_lengths * sample_thicknesses[i])
+            sample_filtered_spectral_power = input_spectrum.spectral_power * trans
+            scint_abs_spectral_power = sample_filtered_spectral_power * scint_abs_spectrum
+            detected_power[i] = scipy.integrate.simps(scint_abs_spectral_power, input_spectrum.energies)
         # Compute an effective transmission vs. thickness
-        absorbed_power = self.scintillator_material.compute_absorbed_power(self.scintillator_thickness,
-                                                                            input_spectrum)
+        scint_spectral_power = input_spectrum.spectral_power * scint_abs_spectrum
+        absorbed_power = scipy.integrate.simps(scint_spectral_power, input_spectrum.energies)
         sample_effective_trans = detected_power / absorbed_power
         # Threshold the transmission we accept to keep the spline from getting unstable
         usable_trans = sample_effective_trans[sample_effective_trans > self.threshold_trans]
@@ -267,14 +311,15 @@ class BeamSoftener():
         return InterpolatedUnivariateSpline(usable_trans[inds], usable_thicknesses[inds], ext='const')
 
 
-    def correct_image(self, input_trans):
+    def correct_image(self, input_image):
         '''Perform beam hardening corrections on an input image.
         Inputs:
-        input_trans: transmission image
+        input_image: image to be corrected
         Returns:
         numpy array the same shape as input_trans, but in pathlength
         '''
-        return self.centerline_spline(input_trans) * self.angular_correction
+        trans = (input_image - self.dark_image) / (self.flat_image - self.dark_image)
+        return self.centerline_spline(trans) * self.angular_correction
 
         
     def correct_as_pathlength_centerline(self, input_trans):
@@ -294,3 +339,22 @@ class BeamSoftener():
         return
         pathlength = mproc.distribute_jobs(input_trans, self.centerline_spline, args=(), axis=1)
         return pathlength
+
+
+    def add_dark_image(self, dark_frame):
+        """Add dark image to the object."""
+        self.dark_image = dark_frame
+
+
+    def add_flat_image(self, flat_frame, exp_ratio = 1):
+        """Add flat image, including processing for vertical fan center.
+        
+        Parameters
+        ----------
+        flat_frame : Numpy array
+            array containing the flatfield data
+        exp_ratio : float
+            ratio of data exposure to flat exposure (default 1)
+        """
+        self.flat_image = flat_frame.astype(np.float64) * exp_ratio
+        self.find_angles(self.flat_image) 

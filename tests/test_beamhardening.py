@@ -5,7 +5,7 @@ from beamhardening import beamhardening, material
 
 @pytest.fixture
 def beamsoftener():
-    return beamhardening.BeamSoftener()
+    return beamhardening.BeamCorrector()
 
 @pytest.fixture
 def simple_spectrum():

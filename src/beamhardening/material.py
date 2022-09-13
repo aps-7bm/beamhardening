@@ -26,6 +26,26 @@ class Material:
         self.proj_density = thickness /1e4 * self.density
     
 
+    def return_ext_lengths_total(self, thickness, energies):
+        attenuation_array = xraydb.material_mu(
+                                            self.name,
+                                            energies,
+                                            self.density,
+                                            'total'
+                                            )
+        return attenuation_array * thickness * 1e-4
+        
+
+    def return_ext_lengths_abs(self, thickness, energies):
+        attenuation_array = xraydb.material_mu(
+                                            self.name,
+                                            energies,
+                                            self.density,
+                                            'photo'
+                                            )
+        return attenuation_array * thickness * 1e-4
+
+
     def compute_transmitted_spectrum(self, thickness, input_spectrum):
         '''Computes the transmitted spectral power through a filter.
         Inputs:
@@ -46,7 +66,6 @@ class Material:
         output_spectrum.spectral_power *= np.exp(-attenuation_array)
         return output_spectrum
     
-
     def compute_absorbed_spectrum(self, thickness, input_spectrum):
         '''Computes the absorbed power of a filter.
         Inputs:
