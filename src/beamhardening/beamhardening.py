@@ -41,7 +41,6 @@ import logging
 import numpy as np
 import scipy.integrate
 import matplotlib.pyplot as plt
-import h5py
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.signal import convolve
 from scipy.signal.windows import gaussian
@@ -264,7 +263,10 @@ class BeamCorrector():
             angles_urad.append(float(angle))
             spectrum = self.spectra_dict[angle]
             #Filter the beam
-            filtered_spectrum = self.apply_filters(spectrum)
+         
+
+
+   filtered_spectrum = self.apply_filters(spectrum)
             #Create an interpolation function based on this
             angle_spline = self._find_calibration_one_angle(filtered_spectrum)
             if angle  == 0:
@@ -288,10 +290,10 @@ class BeamCorrector():
         
         '''
         # Make an array of sample thicknesses
-        sample_thicknesses = np.sort(np.concatenate((-np.logspace(1,-1,21), [0], np.logspace(-1,4.5,56))))
+        sample_thicknesses = np.sort(np.concatenate((-np.logspace(1,-1,41), [0], np.logspace(-1,4.5,111))))
         # For each thickness, compute the absorbed power in the scintillator
         detected_power = np.zeros_like(sample_thicknesses)
-        sample_ext_lengths = np.exp(-self.sample_material.return_ext_lengths_total(1, input_spectrum.energies))
+        sample_ext_lengths = self.sample_material.return_ext_lengths_total(1, input_spectrum.energies)
         scint_ext_lengths = self.scintillator_material.return_ext_lengths_abs(self.scintillator_thickness, input_spectrum.energies)
         scint_abs_spectrum = 1 - np.exp(-scint_ext_lengths)
         for i in range(sample_thicknesses.size):
@@ -307,8 +309,9 @@ class BeamCorrector():
         usable_trans = sample_effective_trans[sample_effective_trans > self.threshold_trans]
         usable_thicknesses = sample_thicknesses[sample_effective_trans > self.threshold_trans]
         # Return a spline, but make sure things are sorted in ascending order
-        inds = np.argsort(usable_trans)
-        return InterpolatedUnivariateSpline(usable_trans[inds], usable_thicknesses[inds], ext='const')
+        usable_ext_l = -np.log(usable_trans)
+        inds = np.argsort(usable_ext_l)
+        return InterpolatedUnivariateSpline(usable_ext_l[inds], usable_thicknesses[inds], ext='const')
 
 
     def correct_image(self, input_image):
@@ -319,7 +322,7 @@ class BeamCorrector():
         numpy array the same shape as input_trans, but in pathlength
         '''
         trans = (input_image - self.dark_image) / (self.flat_image - self.dark_image)
-        return self.centerline_spline(trans) * self.angular_correction
+        return self.centerline_spline(-np.log(trans)) * self.angular_correction
 
         
     def correct_as_pathlength_centerline(self, input_trans):
@@ -337,7 +340,7 @@ class BeamCorrector():
 
         """
         return
-        pathlength = mproc.distribute_jobs(input_trans, self.centerline_spline, args=(), axis=1)
+        pathlength = mproc.distribute_jobs(-np.log(input_trans), self.centerline_spline, args=(), axis=1)
         return pathlength
 
 
