@@ -250,30 +250,15 @@ class BeamCorrector():
         Calibrate pathlength vs. transmission at each angle value.
         Compute the correction required to handle angular spectral variations
         '''
-        if self.scintillator_material is None:
-            print('Need to set scintillator material')
-            raise AttributeError
-        if self.sample_material is None:
-            print('Need to define a sample material')
-            raise AttributeError
-        angles_urad = []
-        cal_curve = []
-        for angle in sorted(self.spectra_dict.keys()):
-            print(angle)
-            angles_urad.append(float(angle))
-            spectrum = self.spectra_dict[angle]
-            #Filter the beam
-         
-
-
-   filtered_spectrum = self.apply_filters(spectrum)
-            #Create an interpolation function based on this
-            angle_spline = self._find_calibration_one_angle(filtered_spectrum)
-            if angle  == 0:
-                self.centerline_spline = angle_spline
-            cal_curve.append(angle_spline(self.ref_trans))
-        cal_curve /= cal_curve[0]
-        angular_spline = InterpolatedUnivariateSpline(angles_urad, cal_curve) 
+        self.compute_interp_values()
+        self.centerline_spline = InterpolatedUnivariateSpline(
+                                                    self.centerline_interp_values[0],
+                                                    self.centerline_interp_values[1],
+                                                    )
+        angular_spline = InterpolatedUnivariateSpline(
+                                                    self.angular_interp_values[0],
+                                                    self.angular_interp_valures[1],
+                                                    )
         self.angular_correction = angular_spline(self.angles)[:,None]
 
     
@@ -285,7 +270,16 @@ class BeamCorrector():
         plt.ylabel('Pathlength, microns')
         plt.show()    
         
+
     def _find_calibration_one_angle(self, input_spectrum):
+        '''Makes a scipy interpolation function to be used to correct images.
+        
+        '''
+        usable_ext_l, usable_thicknesses = self._find_interp_values_one_angle(input_spectrum)
+        return InterpolatedUnivariateSpline(usable_ext_l, usable_thicknesses, ext='const')
+
+
+    def _find_interp_values_one_angle(self, input_spectrum):
         '''Makes a scipy interpolation function to be used to correct images.
         
         '''
@@ -311,9 +305,41 @@ class BeamCorrector():
         # Return a spline, but make sure things are sorted in ascending order
         usable_ext_l = -np.log(usable_trans)
         inds = np.argsort(usable_ext_l)
-        return InterpolatedUnivariateSpline(usable_ext_l[inds], usable_thicknesses[inds], ext='const')
+        return (usable_ext_l[inds], usable_thicknesses[inds])
 
 
+    def compute_interp_values(self):
+        '''Compute the calibrations to perform beam hardening.
+        Calibrate pathlength vs. transmission at each angle value.
+        Compute the correction required to handle angular spectral variations
+        '''
+        if self.scintillator_material is None:
+            print('Need to set scintillator material')
+            raise AttributeError
+        if self.sample_material is None:
+            print('Need to define a sample material')
+            raise AttributeError
+        angles_urad = []
+        cal_curve = []
+        for angle in sorted(self.spectra_dict.keys()):
+            print(angle)
+            angles_urad.append(float(angle))
+            spectrum = self.spectra_dict[angle]
+            #Filter the beam
+            filtered_spectrum = self.apply_filters(spectrum)
+            #Create an interpolation function based on this
+            angle_interp_values = self._find_interp_values_one_angle(filtered_spectrum)
+            if angle  == 0:
+                self.centerline_interp_values = angle_interp_values
+            cal_curve.append(np.interp(
+                                        self.ref_trans,
+                                        angle_interp_values[0],
+                                        angle_interp_values[1],
+                                        ))
+        cal_curve /= cal_curve[0]
+        self.angular_interp_values = (angles_urad, cal_curve)
+
+    
     def correct_image(self, input_image):
         '''Perform beam hardening corrections on an input image.
         Inputs:
