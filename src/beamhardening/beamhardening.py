@@ -40,7 +40,6 @@ import logging
 
 import numpy as np
 import scipy.integrate
-import matplotlib.pyplot as plt
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.signal import convolve
 from scipy.signal.windows import gaussian
@@ -262,15 +261,6 @@ class BeamCorrector():
         self.angular_correction = angular_spline(self.angles)[:,None]
 
     
-    def plot_calibration(self):
-        '''Plot the calibration between pathlength and transmission.'''
-        trans = np.logspace(-2, 0.01, 202)
-        plt.loglog(trans, self.centerline_spline(trans))
-        plt.xlabel('Transmission')
-        plt.ylabel('Pathlength, microns')
-        plt.show()    
-        
-
     def _find_calibration_one_angle(self, input_spectrum):
         '''Makes a scipy interpolation function to be used to correct images.
         
