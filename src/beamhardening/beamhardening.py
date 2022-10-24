@@ -312,7 +312,6 @@ class BeamCorrector():
         angles_urad = []
         cal_curve = []
         for angle in sorted(self.spectra_dict.keys()):
-            print(angle)
             angles_urad.append(float(angle))
             spectrum = self.spectra_dict[angle]
             #Filter the beam
