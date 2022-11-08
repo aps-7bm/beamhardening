@@ -256,7 +256,7 @@ class BeamCorrector():
                                                     )
         angular_spline = InterpolatedUnivariateSpline(
                                                     self.angular_interp_values[0],
-                                                    self.angular_interp_valures[1],
+                                                    self.angular_interp_values[1],
                                                     )
         self.angular_correction = angular_spline(self.angles)[:,None]
 
