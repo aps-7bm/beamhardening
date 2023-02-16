@@ -41,7 +41,7 @@ the reference transmission for the angular correction factor.
 
 ## Typical Usage
 
-'''
+```
 from beamhardening import beamhardening
 beamsoftener = beamhardening.BeamCorrector()
 #Add scintillator material
@@ -65,4 +65,4 @@ beamsoftener.add_dark_image(dark_image)
 
 #Perform correction
 beamsoftener.correct_image(image)
-'''
+```
