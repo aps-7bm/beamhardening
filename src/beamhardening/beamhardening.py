@@ -99,7 +99,7 @@ class BeamCorrector():
         self.possible_materials = {}
         self.read_config_file()
         self.read_source_data()
-        self.angles = None 
+        self.angles = np.array([0])
 
 
     def read_config_file(self, config_filename=None):
@@ -229,6 +229,24 @@ class BeamCorrector():
         return temp_spectrum
 
 
+    def centerline_spectrum(self):
+        '''Returns the spectrum object on the beam centerline.
+        '''
+        return self.spectra_dict[0]
+
+
+    def find_detected_spectrum(self, input_spectrum):
+        '''Returns the spectrum detected by the scintillator.
+        Input: Spectrum object incident on the scintillator
+        Output: Spectrum object of the absorbed spectrum in the scintillator
+        '''
+        output_spectrum = deepcopy(input_spectrum)
+        return self.scintillator_material.compute_absorbed_spectrum(
+                                                        self.scintillator_thickness,
+                                                        input_spectrum,
+                                                        )
+
+
     def find_angles(self, input_image):
         '''Finds the brightest row of input_image.
         Filters to make sure we ignore spurious noise.
@@ -270,8 +288,9 @@ class BeamCorrector():
 
 
     def _find_interp_values_one_angle(self, input_spectrum):
-        '''Makes a scipy interpolation function to be used to correct images.
-        
+        '''Returns a tuple of arrays of extinction lengths and sample thicknesses.
+        This accounts for the impact of beam hardening.
+        This is an internal function called by compute_interp_values
         '''
         # Make an array of sample thicknesses
         sample_thicknesses = np.sort(np.concatenate((-np.logspace(1,-1,41), [0], np.logspace(-1,4.5,111))))
