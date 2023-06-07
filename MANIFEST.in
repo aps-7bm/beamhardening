@@ -1,2 +1,1 @@
-include src/beamhardening/*.dat
-include src/beamhardening/setup.cfg
+include data

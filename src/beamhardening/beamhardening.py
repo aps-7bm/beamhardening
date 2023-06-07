@@ -123,7 +123,7 @@ class BeamCorrector():
             if not config_path.exists():
                 raise IOError('Config file does not exist: ' + str(config_path))
         else:
-            config_path = Path.joinpath(Path(__file__).parent, 'setup.cfg')
+            config_path = Path.joinpath(data_path, 'setup.cfg')
         with open(config_path, 'r') as config_file:
             for line in config_file.readlines():
                 if line.startswith('#'):
