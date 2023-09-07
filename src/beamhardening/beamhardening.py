@@ -101,7 +101,10 @@ class BeamCorrector():
         self.possible_materials = {}
         self.read_config_file()
         try:
-            if kwargs['calculate_source'] == 'standard':
+            if 'calculate_source' not in kwargs.keys():
+                self.read_source_data()
+                log.info('Source read from file.')
+            elif kwargs['calculate_source'] == 'standard':
                 self.calculate_source_data(kwargs)
                 log.info('Source calculated')
             else:
@@ -177,7 +180,7 @@ class BeamCorrector():
                                 kwargs['step_E'],
                                 )
         psi_values = np.linspace(
-                                kwargs['minimum_psi_urad'],
+                                0.0,
                                 kwargs['maximum_psi_urad'],
                                 5,
                                 )
@@ -207,11 +210,19 @@ class BeamCorrector():
     
     def add_filter(self, symbol, thickness, density = None):
         """Add a filter of a given symbol and thickness."""
-        if density is None and symbol in self.possible_materials:
-            density = self.possible_materials[symbol][1]
-            matl = material.Material(self.possible_materials[symbol][0], density)
+        if not density:
+            if symbol in self.possible_materials:
+                density = self.possible_materials[symbol][1]
+                matl = material.Material(self.possible_materials[symbol][0], density)
+            else:
+                try:
+                    density = material.get_element_density(symbol)
+                except:
+                    density = 1.0
+                matl = material.Material(symbol, density)
         else:
             matl = material.Material(symbol, density)
+        print(f'Adding filter {symbol}, density {density:6.4f} g/cm^3, thickness {thickness} microns')
         self.filters[matl] = thickness
     
 
@@ -221,11 +232,19 @@ class BeamCorrector():
         symbol: chemical formula for the sample
         density: density of the sample material in g/cc
         '''
-        if density is None and symbol in self.possible_materials:
-            density = self.possible_materials[symbol][1]
-            matl = material.Material(self.possible_materials[symbol][0], density)
+        if not density:
+            if symbol in self.possible_materials:
+                density = self.possible_materials[symbol][1]
+                matl = material.Material(self.possible_materials[symbol][0], density)
+            else:
+                try:
+                    density = material.get_element_density(symbol)
+                except:
+                    density = 1.0
+                matl = material.Material(symbol, density)
         else:
             matl = material.Material(symbol, density)
+        print(f'Adding sample material {symbol}, density {density:6.4f} g/cm^3')
         self.sample_material = matl
 
 
@@ -373,10 +392,10 @@ class BeamCorrector():
         Compute the correction required to handle angular spectral variations
         '''
         if self.scintillator_material is None:
-            print('Need to set scintillator material')
+            log.error('Need to set scintillator material')
             raise AttributeError
         if self.sample_material is None:
-            print('Need to define a sample material')
+            log.error('Need to define a sample material')
             raise AttributeError
         angles_urad = []
         cal_curve = []

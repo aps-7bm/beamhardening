@@ -17,6 +17,9 @@ def test_absorbed_spectrum(sample_mat, simple_spectrum):
 def test_absorbed_power(sample_mat, peak_spectrum):
     assert(np.allclose(1620.03456, sample_mat.compute_absorbed_power(12.5, peak_spectrum)))
     
+def test_get_element_density():
+    assert(material.get_element_density('Be') == 1.85)
+
 @pytest.fixture
 def sample_mat():
     return material.Material('Fe', 7.874)

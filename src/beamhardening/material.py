@@ -4,6 +4,17 @@ from copy import deepcopy
 import numpy as np
 import xraydb
 
+
+def get_element_density(symbol):
+    '''Attempt to get the elemental density from xraydb
+    Input:
+    symbol: str for the material elemental symbol
+    Output:
+    density: float in g/cm^3
+    '''
+    return xraydb.atomic_density(symbol)
+
+
 class Material:
     '''Class that defines the absorption and attenuation properties of a material.
     Data taken from xraydb
