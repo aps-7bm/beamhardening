@@ -1,3 +1,4 @@
 *.pyc
 dist/*
 build/*
+src/beamhardening.egg-info/*
