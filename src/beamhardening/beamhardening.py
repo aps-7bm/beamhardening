@@ -209,18 +209,21 @@ class BeamCorrector():
 
     
     def add_filter(self, symbol, thickness, density = None):
-        """Add a filter of a given symbol and thickness."""
-        if not density:
-            if symbol in self.possible_materials:
+        """Add a filter of a given symbol and thickness.
+        Inputs:
+        symbol: chemical formula for the sample or tabulated name
+        density: density of the sample material in g/cc
+        """
+        if symbol in self.possible_materials:
+            if density == None:
                 density = self.possible_materials[symbol][1]
-                matl = material.Material(self.possible_materials[symbol][0], density)
-            else:
+            matl = material.Material(self.possible_materials[symbol][0], density)
+        else:
+            if density == None:
                 try:
                     density = material.get_element_density(symbol)
                 except:
                     density = 1.0
-                matl = material.Material(symbol, density)
-        else:
             matl = material.Material(symbol, density)
         print(f'Adding filter {symbol}, density {density:6.4f} g/cm^3, thickness {thickness} microns')
         self.filters[matl] = thickness
@@ -229,20 +232,19 @@ class BeamCorrector():
     def add_sample(self, symbol, density = None):
         '''Define a sample material to be used in these calculations.
         Inputs:
-        symbol: chemical formula for the sample
+        symbol: chemical formula for the sample or tabulated name
         density: density of the sample material in g/cc
         '''
-        if not density:
-            if symbol in self.possible_materials:
+        if symbol in self.possible_materials:
+            if density == None:
                 density = self.possible_materials[symbol][1]
-                matl = material.Material(self.possible_materials[symbol][0], density)
-            else:
+            matl = material.Material(self.possible_materials[symbol][0], density)
+        else:
+            if density == None:
                 try:
                     density = material.get_element_density(symbol)
                 except:
                     density = 1.0
-                matl = material.Material(symbol, density)
-        else:
             matl = material.Material(symbol, density)
         print(f'Adding sample material {symbol}, density {density:6.4f} g/cm^3')
         self.sample_material = matl
@@ -258,15 +260,15 @@ class BeamCorrector():
         if symbol in self.possible_materials:
             if density == None:
                 density = self.possible_materials[symbol][1]
-                self.scintillator_material = material.Material(
-                                                *self.possible_materials[symbol])
-            else:
-                self.scintillator_material = material.Material(
+            self.scintillator_material = material.Material(
                                                 self.possible_materials[symbol][0],
                                                 density)
         else:
             if density == None:
-                raise ValueError('Must specify density for material')
+                try:
+                    density = material.get_element_density(symbol)
+                except:
+                    density = 1.0
             self.scintillator_material = material.Material(symbol, density)
         self.scintillator_thickness = thickness
 
