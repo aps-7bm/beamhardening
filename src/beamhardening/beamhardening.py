@@ -255,12 +255,19 @@ class BeamCorrector():
         thickness: active thickness of the scintillator
         density: density of the sample material in g/cc
         '''
-        if density is None and symbol in self.possible_materials:
-            density = self.possible_materials[symbol][1]
-            matl = material.Material(self.possible_materials[symbol][0], density)
+        if symbol in self.possible_materials:
+            if density == None:
+                density = self.possible_materials[symbol][1]
+                self.scintillator_material = material.Material(
+                                                *self.possible_materials[symbol])
+            else:
+                self.scintillator_material = material.Material(
+                                                self.possible_materials[symbol][0],
+                                                density)
         else:
-            matl = material.Material(symbol, density)
-        self.scintillator_material = matl
+            if density == None:
+                raise ValueError('Must specify density for material')
+            self.scintillator_material = material.Material(symbol, density)
         self.scintillator_thickness = thickness
 
 
