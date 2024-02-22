@@ -64,12 +64,12 @@ class Spectrum:
 
 
     def integrated_power(self):
-        return scipy.integrate.simps(self.spectral_power, self.energies)
+        return scipy.integrate.simpson(self.spectral_power, x = self.energies)
 
 
     def mean_energy(self):
         total_power = self.integrated_power()
-        return scipy.integrate.simps(self.spectral_power * self.energies, self.energies) / total_power
+        return scipy.integrate.simpson(self.spectral_power * self.energies, x = self.energies) / total_power
     
 
     def __len__(self):
@@ -372,10 +372,10 @@ class BeamCorrector():
             trans = np.exp(-sample_ext_lengths * sample_thicknesses[i])
             sample_filtered_spectral_power = input_spectrum.spectral_power * trans
             scint_abs_spectral_power = sample_filtered_spectral_power * scint_abs_spectrum
-            detected_power[i] = scipy.integrate.simps(scint_abs_spectral_power, input_spectrum.energies)
+            detected_power[i] = scipy.integrate.simpson(scint_abs_spectral_power, x = input_spectrum.energies)
         # Compute an effective transmission vs. thickness
         scint_spectral_power = input_spectrum.spectral_power * scint_abs_spectrum
-        absorbed_power = scipy.integrate.simps(scint_spectral_power, input_spectrum.energies)
+        absorbed_power = scipy.integrate.simpson(scint_spectral_power, x = input_spectrum.energies)
         sample_effective_trans = detected_power / absorbed_power
         # Threshold the transmission we accept to keep the spline from getting unstable
         usable_trans = sample_effective_trans[sample_effective_trans > self.threshold_trans]
