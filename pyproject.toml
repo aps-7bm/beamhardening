@@ -8,6 +8,7 @@ description = "Package to correct BM beam hardening"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.9"
+dependencies = ["xraydb", "numpy", "scipy"]
 [tool.setuptools]
 include-package-data = true
 [tool.setuptools.packages.find]
