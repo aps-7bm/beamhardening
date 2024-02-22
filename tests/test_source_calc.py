@@ -12,15 +12,14 @@ def beamsoftener_lookup():
 
 @pytest.fixture
 def centerline_read_spectrum():
-    data_path = Path.cwd().joinpath('data')
+    data_path = beamhardening.data_path
     text_data = np.genfromtxt(data_path.joinpath('Psi_00urad.dat'))
     return beamhardening.Spectrum(text_data[:,0], text_data[:,1])
 
 
 @pytest.fixture
 def urad40_read_spectrum():
-    data_path = Path.cwd().joinpath('data')
-    text_data = np.genfromtxt(data_path.joinpath('Psi_40urad.dat'))
+    text_data = np.genfromtxt(beamhardening.data_path.joinpath('Psi_40urad.dat'))
     return beamhardening.Spectrum(text_data[:,0], text_data[:,1])
 
 @pytest.fixture
