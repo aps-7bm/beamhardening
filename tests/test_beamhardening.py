@@ -60,6 +60,10 @@ def test_spectrum_integrated_power(top_hat_spectrum):
 def test_spectrum_mean_energy(top_hat_spectrum):
     assert(np.allclose(top_hat_spectrum.mean_energy(), 11000.))
 
+def test_luag_ce(beamsoftener, top_hat_spectrum):
+    beamsoftener.add_scintillator('LuAG', 100)
+    assert('LuAG_Ce' in beamsoftener.possible_materials.keys())
+    
 def test__find_calibration_one_angle(beamsoftener, top_hat_spectrum, dual_energy_spectrum):
     beamsoftener.add_scintillator('LuAG', 100)
     beamsoftener.add_sample('Fe')
