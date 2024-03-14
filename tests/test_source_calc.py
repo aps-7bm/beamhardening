@@ -26,8 +26,8 @@ def urad40_read_spectrum():
 def beamsoftener_calc():
     return beamhardening.BeamCorrector(
                                     calculate_source = "standard",
-                                    E_storage_ring = 7,
-                                    B_storage_ring = 0.6,
+                                    e_storage_ring = 7,
+                                    b_storage_ring = 0.6,
                                     minimum_E = 1000,
                                     maximum_E = 2e5,
                                     step_E = 100,

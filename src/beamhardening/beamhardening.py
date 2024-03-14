@@ -168,8 +168,8 @@ class BeamCorrector():
         A Hoffman "The Physics of Synchrotron Radiation" section 5.3.
         """
         self.spectra_dict = {}
-        E_sr = float(kwargs['E_storage_ring'])
-        B = float(kwargs['B_storage_ring'])
+        E_sr = float(kwargs['e_storage_ring'])
+        B = float(kwargs['b_storage_ring'])
         gamma = E_sr * 1e9 * constants.elementary_charge / (constants.m_e * constants.c**2)
         radius = (gamma * constants.m_e * constants.c) / (constants.elementary_charge * B)
         critical_energy = (3 * gamma**3 * constants.c 
