@@ -215,11 +215,11 @@ class BeamCorrector():
         density: density of the sample material in g/cc
         """
         if symbol in self.possible_materials:
-            if density == None:
+            if density == None or density == 0.0:
                 density = self.possible_materials[symbol][1]
             matl = material.Material(self.possible_materials[symbol][0], density)
         else:
-            if density == None:
+            if density == None or density == 0.0:
                 try:
                     density = material.get_element_density(symbol)
                 except:
@@ -236,11 +236,11 @@ class BeamCorrector():
         density: density of the sample material in g/cc
         '''
         if symbol in self.possible_materials:
-            if density == None:
+            if density == None or density == 0.0:
                 density = self.possible_materials[symbol][1]
             matl = material.Material(self.possible_materials[symbol][0], density)
         else:
-            if density == None:
+            if density == None or density == 0.0:
                 try:
                     density = material.get_element_density(symbol)
                 except:
@@ -258,13 +258,13 @@ class BeamCorrector():
         density: density of the sample material in g/cc
         '''
         if symbol in self.possible_materials:
-            if density == None:
+            if density == None or density == 0.0:
                 density = self.possible_materials[symbol][1]
             self.scintillator_material = material.Material(
                                                 self.possible_materials[symbol][0],
                                                 density)
         else:
-            if density == None:
+            if density == None or density == 0.0:
                 try:
                     density = material.get_element_density(symbol)
                 except:

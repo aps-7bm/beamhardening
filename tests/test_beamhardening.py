@@ -64,6 +64,11 @@ def test_luag_ce(beamsoftener, top_hat_spectrum):
     beamsoftener.add_scintillator('LuAG', 100)
     assert('LuAG_Ce' in beamsoftener.possible_materials.keys())
     
+def test_zero_density(beamsoftener):
+    beamsoftener.add_filter('Sr', 100., 0)
+    key_list = list(beamsoftener.filters.keys())
+    assert(key_list[-1].density == 2.64)
+
 def test__find_calibration_one_angle(beamsoftener, top_hat_spectrum, dual_energy_spectrum):
     beamsoftener.add_scintillator('LuAG', 100)
     beamsoftener.add_sample('Fe')
